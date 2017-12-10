@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pong</title>
+</head>
+<style>
+    body{
+        background-color: black;
+    }
+    canvas{
+        border-style: solid;
+        border-color: lightblue;
+        border-width: 1px;
+        position: relative;
+        top: 20px;
+    }
+    p{
+    	font-size: 50px;
+    	color: lightblue;
+    }
+</style>
+<audio id="audio1">
+  <source src="wall.mp3" type="audio/mpeg">
+</audio>
+<audio id="audio2">
+  <source src="collision.wav" type="audio/mpeg">
+</audio>
+<audio id="audio3">
+  <source src="success.mp3" type="audio/mpeg">
+</audio>
+<audio id="audio4">
+  <source src="win.mp3" type="audio/mpeg">
+</audio>
+<body>
+	<center>
+		<canvas id="canvas" height="450" width="800"></canvas>
+		<p>Pong</p>
+	</center>
+<script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    var wall = document.getElementById("audio1");
+    wall.volume = 0.6;
+    var collision = document.getElementById("audio2");
+    collision.volume = 0.1;
+    var success = document.getElementById("audio3");
+    success.volume = 0.6;
+    var win = document.getElementById("audio4");
+    win.volume = 0.1;
+
+    const rand = function(num){
+    	return Math.ceil(Math.random() * num);
+    };
+
+    const gameData = {
+    	gameOver: false,
+    	Score1: 0,
+    	Score2: 0,
+        p1: {
+            height: 60,
+            width:  10,
+            x:      canvas.width-20,
+            y:      (canvas.height/2)-30,
+            yDelta: 5
+        },
+        p2: {
+            height: 60,
+            width:  10,
+            x:      10,
+            y:      (canvas.height/2)-30,
+            yDelta: 5
+        },
+        ball: {
+            height: 10,
+            width:  10,
+            x:      canvas.width/2-10,
+            y:      (canvas.height/2)-10,
+            xDelta: 5,
+            yDelta: 0
+        },
+        upKeyP1:    false,
+        downKeyP1:  false,
+        upKeyP2:    false,
+        downKeyP2:  false,
+    }
+    
+    const upKeyP1 = 38;
+    const downKeyP1 = 40;
+    const upKeyP2 = 87;
+    const downKeyP2 = 83;
+    
+    document.addEventListener("keydown", function(event){
+        if(event.keyCode === upKeyP1){
+            gameData.upKeyP1 = true;
+        }
+        if(event.keyCode === downKeyP1){
+            gameData.downKeyP1 = true;
+        }
+        if(event.keyCode === upKeyP2){
+            gameData.upKeyP2 = true;
+        }
+        if(event.keyCode === downKeyP2){
+            gameData.downKeyP2 = true;
+        }
+    }, false);
+
+    document.addEventListener("keyup", function(event){
+        if(event.keyCode === upKeyP1){
+            gameData.upKeyP1 = false;
+        }
+        if(event.keyCode === downKeyP1){
+            gameData.downKeyP1 = false;
+        }
+        if(event.keyCode === upKeyP2){
+            gameData.upKeyP2 = false;
+        }
+        if(event.keyCode === downKeyP2){
+            gameData.downKeyP2 = false;
+        }
+    }, false);
+
+    const draw = function(){
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "lightblue";
+        ctx.beginPath();
+        ctx.moveTo(canvas.width/2, 7.5);
+        ctx.lineTo(canvas.width/2, canvas.height-2.5);
+        ctx.setLineDash([15, 5]);
+        ctx.lineWidth = "2";
+        ctx.strokeStyle = "lightblue";
+        ctx.stroke();
+        ctx.fillRect(gameData.p1.x, gameData.p1.y, gameData.p1.width, gameData.p1.height);
+        ctx.fillRect(gameData.p2.x, gameData.p2.y, gameData.p2.width, gameData.p2.height);
+        ctx.fillRect(gameData.ball.x, gameData.ball.y, gameData.ball.width, gameData.ball.height);
+        ctx.font = "50px Arial";
+        ctx.fillStyle = "lightblue";
+        ctx.fillText(gameData.Score2, canvas.width/2-80, 50);
+        ctx.fillText(gameData.Score1, canvas.width/2+50, 50);
+        if(gameData.Score2 === 5){
+        	win.play();
+        	ctx.font = "30px Arial";
+        	ctx.fillStyle = "lightblue";
+        	ctx.fillText("Game over", canvas.width/3*2, canvas.height/2);
+        	ctx.fillText("Winner", canvas.width/4-50, canvas.height/2);
+        	ctx.fillStyle = "black";
+        	ctx.fillRect(gameData.ball.x-1, gameData.ball.y, gameData.ball.width, gameData.ball.height);
+        	gameData.gameOver = true;
+        }
+        if(gameData.Score1 === 5){
+        	win.play();
+        	ctx.font = "30px Arial";
+        	ctx.fillStyle = "lightblue";
+        	ctx.fillText("Game over", canvas.width/4-50, canvas.height/2);
+        	ctx.fillText("Winner", canvas.width/3*2, canvas.height/2);
+        	ctx.fillStyle = "black";
+        	ctx.fillRect(gameData.ball.x-1, gameData.ball.y, gameData.ball.width, gameData.ball.height);
+        	gameData.gameOver = true;
+        }
+    };
+
+    const updateData = function(){
+        //movement of players
+        if(gameData.upKeyP1){
+            gameData.p1.y -= gameData.p1.yDelta;
+        }
+        if(gameData.downKeyP1){
+            gameData.p1.y += gameData.p1.yDelta;
+        }
+         if(gameData.upKeyP2){
+            gameData.p2.y -= gameData.p2.yDelta;
+        }
+        if(gameData.downKeyP2){
+            gameData.p2.y += gameData.p2.yDelta;
+        }
+
+        //borders for players
+        if(gameData.p1.y >= canvas.height-gameData.p1.height){
+            gameData.p1.y = canvas.height-gameData.p1.height;
+        }
+        if(gameData.p1.y <= 0){
+            gameData.p1.y = 0;
+        }
+        if(gameData.p2.y >= canvas.height-gameData.p2.height){
+            gameData.p2.y = canvas.height-gameData.p2.height;
+        }
+        if(gameData.p2.y <= 0){
+            gameData.p2.y = 0;
+        }
+
+        //borders for ball
+        if(gameData.ball.y + gameData.ball.height >= canvas.height){
+        	wall.play();
+            gameData.ball.yDelta = -(gameData.ball.yDelta);
+        }
+        if(gameData.ball.y <= 0){
+        	wall.play();
+            gameData.ball.yDelta = -(gameData.ball.yDelta);
+        }
+ 
+        //movement for ball
+        gameData.ball.x += gameData.ball.xDelta;
+        gameData.ball.y += gameData.ball.yDelta;
+
+        //player and ball interaction
+        if((gameData.ball.x + gameData.ball.width === gameData.p1.x) && (gameData.ball.y + gameData.ball.height > gameData.p1.y) && (gameData.ball.y < gameData.p1.y + gameData.p1.height)){
+        	collision.play();
+        	let a = rand(2);
+        	gameData.ball.xDelta = -(gameData.ball.xDelta);
+        	if(a===1){
+        		gameData.ball.yDelta = rand(3)*1.5;
+        	} else {
+        		gameData.ball.yDelta = -(rand(3)*1.5);
+        	}
+        } 
+        if((gameData.ball.x === gameData.p2.x + gameData.p2.width) && (gameData.ball.y < gameData.p2.y + gameData.p2.height) && (gameData.ball.y + gameData.ball.height > gameData.p2.y)){
+        	collision.play();
+        	let a = rand(2);
+        	gameData.ball.xDelta = -(gameData.ball.xDelta);
+        	if(a===1){
+        		gameData.ball.yDelta = rand(5)*1.1;
+        	} else if(a===2){
+        		gameData.ball.yDelta = -(rand(5)*1.1);
+        	}
+        }
+
+        //Score
+        if(gameData.ball.x<0){
+        	gameData.Score1 +=1;
+        	if(gameData.Score1 < 5 && gameData.Score2 < 5){
+        		success.play();
+        	}
+        	gameData.ball.x = canvas.width/2-20;
+        	gameData.ball.y = canvas.height/2; 
+            gameData.ball.xDelta = -(gameData.ball.xDelta);
+            gameData.ball.yDelta = 0;
+        }
+        if(gameData.ball.x>canvas.width){
+        	gameData.Score2 += 1;
+        	if(gameData.Score1 < 5 && gameData.Score2 < 5){
+        		success.play();
+        	}
+        	gameData.ball.x = canvas.width/2-20;
+        	gameData.ball.y = canvas.height/2; 
+        	gameData.ball.xDelta = -(gameData.ball.xDelta);
+        	gameData.ball.yDelta = 0;	
+        }
+    };
+
+    const loop = function(){
+        if(!gameData.gameOver){
+        	draw();
+        	updateData();
+        }
+        requestAnimationFrame(loop);
+    };
+
+    loop();
+
+</script>
+</body>
+</html>
